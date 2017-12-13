@@ -1,4 +1,10 @@
-from flask import Flask, render_template, request, redirect
+################################################################################
+# Dependencies & Modules
+################################################################################
+
+from threading import Lock
+from flask import Flask, render_template, request, redirect, session
+from flask_socketio import SocketIO, emit, join_room, leave_room, close_room, rooms, disconnect
 import datetime
 import numpy as np
 import sqlite3 as sql
@@ -7,9 +13,22 @@ from apps import connection
 import shelve
 import logging
 
+################################################################################
+# Global Configs
+################################################################################
+
+async_mode = None
 
 app=Flask(__name__)
 logging.basicConfig(filename='brain.log', level=logging.INFO, format='%(asctime)s %(message)s')
+
+socketio = SocketIO(app, async_mode=async_mode)
+thread = None
+thread_lock = Lock()
+
+################################################################################
+# Requests & Routing
+################################################################################
 
 @app.route("/")
 def hello():
@@ -63,9 +82,30 @@ def laeuft(par1):
     else:
         return redirect('./')
 
+################################################################################
+# Socket configuration
+################################################################################
 
+@socketio.on('connect')
+def test_connect():
+    emit('my response', {'data': 'Connected'})
 
+@socketio.on('disconnect')
+def test_disconnect():
+    print('Client disconnected')
 
+@socketio.on('my_ping')
+def ping_pong():
+    emit('my_pong')
+
+@socketio.on('my_event')
+def test_message(message):
+    emit('my_response',
+         {'data': message['data']})
+
+################################################################################
+# Main
+################################################################################
 
 if __name__== "__main__":
-    app.run(host='', port=8000, debug=True)
+    socketio.run(app, debug=True)
