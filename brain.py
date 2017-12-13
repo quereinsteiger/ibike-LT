@@ -26,7 +26,7 @@ def hello():
         id=max(id)+1
 
     templateData={
-        'title': 'Messung',
+        'title': 'iBike',
         'time': timeString,
         'Messung': id
         }
@@ -55,7 +55,7 @@ def laeuft(par1):
             verbindung=connection.verbindung()
             datensatz=verbindung.insert(string )
             logging.info('Messung gestartet [./apps/werte_schreiben.py]')
-            process=Popen(['python', 'C:/Users/Tim/Documents/GitHub/ibike-LT/apps/werte_schreiben.py'], cwd='.' )
+            process=Popen(['python', 'apps/werte_schreiben.py'], cwd='.' )
             # process.stdin.write(int(dat['ID']).to_bytes(4, byteorder='big'))
             # process.stdin.close()
             Data.close()
