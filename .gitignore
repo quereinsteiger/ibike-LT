@@ -126,4 +126,4 @@ ibike-LT*
 
 
 #temp ignorieren
-/temp*
+/temp/*
