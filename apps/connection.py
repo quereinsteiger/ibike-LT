@@ -8,13 +8,14 @@ class verbindung():
 
     def abfrage(self, befehl):
         con=sql.connect(self.datenbank)
-        con.row_factory=zeilen_dict
+        #con.row_factory=zeilen_dict
+        con.row_factory=sql.Row
         cursor=con.cursor()
         cursor.execute(befehl)
         value=cursor.fetchall()
-        con.commit()
         con.close()
         return value
+
     def insert(self, befehl):
         con=sql.connect(self.datenbank)
         cursor=con.cursor()
@@ -26,6 +27,10 @@ class verbindung():
     # def __del__(self):
     #     self.con.close()
 
+
+###############################################################################
+# TEST-Code für iBike #########################################################
+###############################################################################
 def auslesen(id=1):
     a=verbindung()
     ds=a.abfrage("SELECT * FROM tblFahrer WHERE tblFahrer.ID=" + str(id))
