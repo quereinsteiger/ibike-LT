@@ -31,7 +31,7 @@ if __name__=="__main__":
     ID=int(MessungID['MessungID'])
     MessungID.close()
     i=0
-    while i<100:
+    while i<2000:
         dist_schreiben(ID)
-        time.sleep(0.05)
+        time.sleep(0.1)
         i=i+1
