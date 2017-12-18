@@ -12,6 +12,7 @@ from subprocess import Popen, PIPE
 from apps import connection
 import shelve
 import logging
+import time
 
 ################################################################################
 # Global Configs
@@ -51,47 +52,21 @@ def hello():
         }
     return render_template('main.html', **templateData)
 
-@app.route('/test')
-def run():
-
-    Popen(['python', './apps/test2.py'], stdout = PIPE )
-    return render_template('test.html')
-
-@app.route('/run/<par1>/',methods=['POST', 'GET'])
-def laeuft(par1):
-
-    if request.method=='POST':
-            Data=shelve.open('./temp/parameter')
-            now=datetime.datetime.now()
-            timeString = now.strftime("%d.%m.%Y")
-            Data['MessungID']=par1
-            dat = { 'Bezeichnung': request.form['Bezeichnung'],
-                    'Datum': timeString,
-                    'ID': int(par1)}
-            string="INSERT INTO tblMessung('ID', 'Datum', 'Bezeichnung') Values(%d,\'%s\', \'%s\');" %(dat['ID'], dat['Datum'],dat['Bezeichnung'])
-            logging.info('Messung angelegt: '+string)
-            print(string)
-            verbindung=connection.verbindung()
-            datensatz=verbindung.insert(string )
-            logging.info('Messung gestartet [./apps/werte_schreiben.py]')
-            process=Popen(['python', 'apps/werte_schreiben.py'], cwd='.' )
-            # process.stdin.write(int(dat['ID']).to_bytes(4, byteorder='big'))
-            # process.stdin.close()
-            Data.close()
-            return render_template('run.html', **dat)
-    else:
-        return redirect('./')
-
 ################################################################################
 # Socket configuration
 ################################################################################
 
 @socketio.on('connect')
-def test_connect():
+def connect():
     emit('my response', {'data': 'Connected'})
+    i=0
+    while i<10:
+        socketio.emit('daten', i)
+        time.sleep(0.01)
+        i=i+1
 
 @socketio.on('disconnect')
-def test_disconnect():
+def disconnect():
     print('Client disconnected')
 
 @socketio.on('my_ping')
@@ -103,9 +78,75 @@ def test_message(message):
     emit('my_response',
          {'data': message['data']})
 
+@socketio.on('start_measurement')
+def message_1(msg):
+    emit('modechange', 'start')
+    print('Start Messung')
+    start(msg)
+
+@socketio.on('stop_measurement')
+def message(msg):
+    emit('modechange', 'stop')
+    print(msg)
+    
+################################################################################
+# DB Reading
+################################################################################
+verbindung=connection.verbindung()
+period = 1     # anzuzeigendes Zeitfenster [s]
+
+def createDbEntry(id):
+    print('Create DB Entry')
+    print(id)
+    Data=shelve.open('./temp/parameter')
+    print('opened')
+    now=datetime.datetime.now()
+    timeString = now.strftime("%d.%m.%Y")
+    Data['MessungID']=id
+    dat = { 'Bezeichnung': 'deine m',
+            'Datum': timeString,
+            'ID': id}
+    string="INSERT INTO tblMessung('ID', 'Datum', 'Bezeichnung') Values(%d,\'%s\', \'%s\');" %(dat['ID'], dat['Datum'],dat['Bezeichnung'])
+    logging.info('Messung angelegt: '+string)
+    print(string)
+    verbindung=connection.verbindung()
+    datensatz=verbindung.insert(string)
+    logging.info('Messung gestartet [./apps/werte_schreiben.py]')
+    process=Popen(['python', 'apps/werte_schreiben.py'], cwd='.' )
+    # process.stdin.write(int(dat['ID']).to_bytes(4, byteorder='big'))
+    # process.stdin.close()
+    Data.close()
+
+def collect(id, period=100):
+    print('Collect')
+    print(id)
+    data=verbindung.abfrage("SELECT MAX(TimeStamp) FROM tblWerte Where MessungID = %i;" %id)
+    t_max=data[0]['MAX(TimeStamp)']
+    t_start= t_max-period
+    data=verbindung.abfrage("SELECT TimeStamp, Distanz FROM tblWerte WHERE MessungID = %i AND TimeStamp > %f ;" %(id, t_start))
+    t=[]
+    dist=[]
+    for value in data:
+        t.append(list(value)[0])
+        dist.append(list(value)[1])
+        #print(t , dist)
+    return [t, dist]
+
+def start(id):
+    createDbEntry(id)
+    print('Start Messung')
+    while True:
+        t1=time.time()
+        dataset=collect(id, period)
+        print(dataset)
+        socketio.emit('measure_data', dataset)
+        t_elapsed=time.time()-t1
+        print("elapsed:"+str(t_elapsed)+"\n \n")
+        time.sleep(0.1)
+
 ################################################################################
 # Main
 ################################################################################
 
 if __name__== "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=False)

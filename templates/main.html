@@ -19,15 +19,18 @@
 
 		<div class="box">
 			<div class="label">MESSUNG</div>
-			<div class="value">{{Messung}}</div>
+			<div class="value" id="messungId">{{Messung}}</div>
 		</div>		
 
-		<form action="{{ url_for('laeuft', par1 = Messung)}}" method='POST'>
+		<form>
 			<div class="box">
 				<label for="nameInput" class="label">TITEL</label>
 				<input type="text" id="nameInput" name="Bezeichnung" class="value nameInput"/>
 			</div>
-			<button type="submit" value="start" class="startBtn">
+			<button class="startBtn" data-measurement="stop">
+				<div class="icon"></div>
+			</button>
+			<button class="stopBtn">
 				<div class="icon"></div>
 			</button>
 		</form>

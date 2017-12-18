@@ -9,6 +9,7 @@ $(document).ready(function()
 {
   var namespace = '';
   var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+  var startBtn =  $('.startBtn');
 
   socket.on('connect', function() 
   {
@@ -19,6 +20,50 @@ $(document).ready(function()
   {
     $('#log').append('<br>' + $('<div/>').text('Received: ' + msg.data).html());
   });
+  socket.on('measure_data', function(datensatz) 
+  {
+    var timestamps = datensatz[0];
+    var distances = datensatz[1];
+    var chartUi = chartObj.chart;
+    for(var i=0; i<timestamps.length;i++)
+    {
+      var timeDiff = timestamps[i]-timestamps[0];
+      addData(chartUi, Math.round(timeDiff*1000)+' s', distances[i]);
+    }
+    function addData(chart, label, data) 
+    {
+      console.log(label, data);
+      chart.data.labels.push(label);
+      chart.data.datasets.forEach((dataset) => {
+          dataset.data.push(data);
+      });
+      chart.update();
+    }
+  });
+
+
+  socket.on('modechange', function(mode) 
+  {
+    console.log('Modechange: ' + mode);
+    $('body').removeClass('start stop').addClass(mode);
+    startBtn.removeClass('start stop').addClass(mode).data('measurement', mode);
+  });
+
+
+  $('.startBtn').bind('click touchstart', function(e)
+  {
+    e.preventDefault();
+    var measure = startBtn.data('measurement');
+    if(measure == 'stop')
+    {
+      var id = parseInt($('#messungId')[0].innerText);
+      socket.emit('start_measurement', id)
+    }
+    else
+      socket.emit('stop_measurement', 'Measurement stoppen')
+  })
+
+
 
   //#########
   //Ping

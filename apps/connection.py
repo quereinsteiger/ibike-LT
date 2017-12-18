@@ -28,9 +28,6 @@ class verbindung():
     #     self.con.close()
 
 
-###############################################################################
-# TEST-Code für iBike #########################################################
-###############################################################################
 def auslesen(id=1):
     a=verbindung()
     ds=a.abfrage("SELECT * FROM tblFahrer WHERE tblFahrer.ID=" + str(id))

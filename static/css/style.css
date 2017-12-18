@@ -127,6 +127,11 @@ label
   mask-size:80px;
 }
 
+.startBtn.start .icon
+{
+	-webkit-mask-image: url('/static/img/stop.svg');
+	mask-image: url('/static/img/stop.svg');
+}
 .startBtn:hover
 {
 	background-color: white;
