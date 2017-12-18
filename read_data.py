@@ -15,7 +15,7 @@ def collect(MessungID, period=10):
     #print(t_max)
 
 
-    t_start= t_max-period
+    t_start = t_max-period
     data=verbindung.abfrage("SELECT TimeStamp, Distanz FROM tblWerte WHERE MessungID = %i AND TimeStamp > %f ;" %(MessungID, t_start))
     t=[]
     dist=[]
