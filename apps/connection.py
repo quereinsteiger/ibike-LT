@@ -3,25 +3,29 @@ import time
 
 class verbindung():
     """Verbindung zur Datenbank herstellen"""
-    def __init__(self, datenbank="./data/ibike.sqlite"):
-        self.datenbank = datenbank
+    dbfile= "./Data/ibike.sqlite"
+
+    def __init__(self, datenbank=None, foreign_keys=False):
+        self.datenbank = datenbank if datenbank else verbindung.dbfile
+        self.conn = sql.connect(self.datenbank)
+        self.conn.row_factory=sql.Row
+        self.cur = self.conn.cursor()
+
+        if foreign_keys:
+            self.cur.execute('Pragma foreign_keys = ON;')
 
     def abfrage(self, befehl):
-        con=sql.connect(self.datenbank)
-        #con.row_factory=zeilen_dict
-        con.row_factory=sql.Row
-        cursor=con.cursor()
-        cursor.execute(befehl)
+        print('abfrage')
+        cursor=self.cur.execute(befehl)
+        print('next')
         value=cursor.fetchall()
-        con.close()
+        print(type(value[0]))
+        print('close')
         return value
 
     def insert(self, befehl):
-        con=sql.connect(self.datenbank)
-        cursor=con.cursor()
-        cursor.execute(befehl)
-        con.commit()
-        con.close()
+        self.cur.execute(befehl)
+        self.conn.commit()
         return
 
     # def __del__(self):

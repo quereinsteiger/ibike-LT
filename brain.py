@@ -88,14 +88,14 @@ def message_1(msg):
 def message(msg):
     emit('modechange', 'stop')
     print(msg)
-    
+
 ################################################################################
 # DB Reading
 ################################################################################
-verbindung=connection.verbindung()
+#verbindung=connection.verbindung()
 period = 1     # anzuzeigendes Zeitfenster [s]
 
-def createDbEntry(id):
+def createDbEntry(id, verbindung):
     print('Create DB Entry')
     print(id)
     Data=shelve.open('./temp/parameter')
@@ -109,7 +109,7 @@ def createDbEntry(id):
     string="INSERT INTO tblMessung('ID', 'Datum', 'Bezeichnung') Values(%d,\'%s\', \'%s\');" %(dat['ID'], dat['Datum'],dat['Bezeichnung'])
     logging.info('Messung angelegt: '+string)
     print(string)
-    verbindung=connection.verbindung()
+    #verbindung=connection.verbindung()
     datensatz=verbindung.insert(string)
     logging.info('Messung gestartet [./apps/werte_schreiben.py]')
     process=Popen(['python', 'apps/werte_schreiben.py'], cwd='.' )
@@ -117,13 +117,16 @@ def createDbEntry(id):
     # process.stdin.close()
     Data.close()
 
-def collect(id, period=100):
+def collect(id,verbindung, period=100, ):
     print('Collect')
     print(id)
+    #verbindung=connection.verbindung()
     data=verbindung.abfrage("SELECT MAX(TimeStamp) FROM tblWerte Where MessungID = %i;" %id)
+
     t_max=data[0]['MAX(TimeStamp)']
     t_start= t_max-period
     data=verbindung.abfrage("SELECT TimeStamp, Distanz FROM tblWerte WHERE MessungID = %i AND TimeStamp > %f ;" %(id, t_start))
+    print('data')
     t=[]
     dist=[]
     for value in data:
@@ -133,13 +136,16 @@ def collect(id, period=100):
     return [t, dist]
 
 def start(id):
-    createDbEntry(id)
+    verbindung=connection.verbindung()
+    createDbEntry(id, verbindung)
     print('Start Messung')
+    time.sleep(0.2)
     while True:
         t1=time.time()
-        dataset=collect(id, period)
-        print(dataset)
+        dataset=collect(id, verbindung,period)
+        print('dataset:', dataset)
         socketio.emit('measure_data', dataset)
+        print('emited')
         t_elapsed=time.time()-t1
         print("elapsed:"+str(t_elapsed)+"\n \n")
         time.sleep(0.1)
@@ -149,4 +155,4 @@ def start(id):
 ################################################################################
 
 if __name__== "__main__":
-    socketio.run(app, debug=False)
+    socketio.run(app, debug=True)
