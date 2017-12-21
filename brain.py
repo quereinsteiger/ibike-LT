@@ -12,20 +12,23 @@ from subprocess import Popen, PIPE
 from apps import connection
 import shelve
 import logging
+import logging.config
 import time
 
 ################################################################################
 # Global Configs
 ################################################################################
+logging.config.fileConfig('./config/logging.conf')
+logfile=logging.getLogger('logfile')
+show=logging.getLogger('show')
 
 async_mode = None
 
 app=Flask(__name__)
-logging.basicConfig(filename='brain.log', level=logging.INFO, format='%(asctime)s %(message)s')
-
 socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 thread_lock = Lock()
+
 
 ################################################################################
 # Requests & Routing
@@ -96,10 +99,9 @@ def message(msg):
 period = 1     # anzuzeigendes Zeitfenster [s]
 
 def createDbEntry(id, verbindung):
-    print('Create DB Entry')
-    print(id)
+    show.debug('Create DB Entry')
+    show.info(id)
     Data=shelve.open('./temp/parameter')
-    print('opened')
     now=datetime.datetime.now()
     timeString = now.strftime("%d.%m.%Y")
     Data['MessungID']=id
@@ -107,26 +109,23 @@ def createDbEntry(id, verbindung):
             'Datum': timeString,
             'ID': id}
     string="INSERT INTO tblMessung('ID', 'Datum', 'Bezeichnung') Values(%d,\'%s\', \'%s\');" %(dat['ID'], dat['Datum'],dat['Bezeichnung'])
-    logging.info('Messung angelegt: '+string)
-    print(string)
-    #verbindung=connection.verbindung()
+    show.debug('Messung angelegt: '+string)
     datensatz=verbindung.insert(string)
-    logging.info('Messung gestartet [./apps/werte_schreiben.py]')
+    show.debug('Messung gestartet [./apps/werte_schreiben.py]')
     process=Popen(['python', 'apps/werte_schreiben.py'], cwd='.' )
     # process.stdin.write(int(dat['ID']).to_bytes(4, byteorder='big'))
     # process.stdin.close()
     Data.close()
 
 def collect(id,verbindung, period=100, ):
-    print('Collect')
-    print(id)
-    #verbindung=connection.verbindung()
+    show.debug('started: Collect')
+    show.info('MessungID: %i' %id)
+    verbindung=connection.verbindung()
     data=verbindung.abfrage("SELECT MAX(TimeStamp) FROM tblWerte Where MessungID = %i;" %id)
-
+    show.info('data:  '+ str(tuple(data[0])))
     t_max=data[0]['MAX(TimeStamp)']
     t_start= t_max-period
     data=verbindung.abfrage("SELECT TimeStamp, Distanz FROM tblWerte WHERE MessungID = %i AND TimeStamp > %f ;" %(id, t_start))
-    print('data')
     t=[]
     dist=[]
     for value in data:
@@ -138,16 +137,16 @@ def collect(id,verbindung, period=100, ):
 def start(id):
     verbindung=connection.verbindung()
     createDbEntry(id, verbindung)
-    print('Start Messung')
+    show.debug('Start Messung')
     time.sleep(0.2)
     while True:
         t1=time.time()
-        dataset=collect(id, verbindung,period)
-        print('dataset:', dataset)
+        dataset=collect(id, verbindung,period=1.0)
+        #show.info('dataset:' + str(tuple(dataset)))
         socketio.emit('measure_data', dataset)
-        print('emited')
+        show.info('emited')
         t_elapsed=time.time()-t1
-        print("elapsed:"+str(t_elapsed)+"\n \n")
+        show.debug("elapsed:"+str(t_elapsed)+"\n \n")
         time.sleep(0.1)
 
 ################################################################################
@@ -155,4 +154,4 @@ def start(id):
 ################################################################################
 
 if __name__== "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=False)

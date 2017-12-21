@@ -5,8 +5,10 @@ import logging
 # from apps
 import connection
 
+#logging.config.fileConfig('../config/logging.conf')
+logfile=logging.getLogger('logfile')
+show=logging.getLogger('show')
 
-logging.basicConfig(filename='werte_schreiben.log', level=logging.INFO, format='%(asctime)s %(message)s')
 def distanz():
     logging.info('Aufruf Distanz')
     value=[time.time(),random()]
@@ -18,12 +20,12 @@ def dist_schreiben(MessungID):
     werte=distanz()
 
     string="INSERT INTO tblWerte('MessungID','TimeStamp','Distanz') Values(%d,%f,%f);" %(MessungID, werte[0], werte[1])
-    logging.info('START Wert schreiben')
-    print(string)
+    show.info('START Wert schreiben')
+    show.debug(string)
     start=time.time()
     verbindung.insert(string)
     elapsed=time.time()-start
-    logging.info('ENDE Wert schreiben | Dauer des Schreibvorgangs: %f' %(elapsed))
+    show.info('ENDE Wert schreiben | Dauer des Schreibvorgangs: %f' %(elapsed))
     return
 
 if __name__=="__main__":
