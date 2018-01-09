@@ -1,5 +1,9 @@
 import sqlite3 as sql
 import time
+import logging
+
+logfile=logging.getLogger('logfile')
+show=logging.getLogger('show')
 
 class verbindung():
     """Verbindung zur Datenbank herstellen"""
@@ -15,15 +19,14 @@ class verbindung():
             self.cur.execute('Pragma foreign_keys = ON;')
 
     def abfrage(self, befehl):
-        print('abfrage')
+        show.debug('Abfrage: '+ befehl)
         cursor=self.cur.execute(befehl)
-        print('next')
         value=cursor.fetchall()
-        print(type(value[0]))
-        print('close')
+        #show.debug('Abfrage return:'+(str(value)))
         return value
 
     def insert(self, befehl):
+        show.debug('Insert: ' + befehl)
         self.cur.execute(befehl)
         self.conn.commit()
         return
